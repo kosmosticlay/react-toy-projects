@@ -1,9 +1,5 @@
-import * as SplashScreen from "expo-splash-screen";
 import "react-native-reanimated";
 import { View, Text, StyleSheet } from "react-native";
-
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   return (
