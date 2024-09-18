@@ -2,6 +2,7 @@ import "react-native-reanimated";
 import { View, Text, StyleSheet, ScrollView, Dimensions } from "react-native";
 import * as Location from "expo-location";
 import { useEffect, useState } from "react";
+import { getWeather } from "@/api/api";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -9,24 +10,32 @@ export default function RootLayout() {
   const [location, setLocation] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        setErrorMsg("Permission to access location was denied");
-        return;
-      }
+  const getLocation = async () => {
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== "granted") {
+      setErrorMsg("Permission to access location was denied");
+      return;
+    }
 
-      let {
-        coords: { latitude, longitude },
-      } = await Location.getCurrentPositionAsync({});
-      const [{ region, city }] = await Location.reverseGeocodeAsync(
-        { latitude, longitude },
-        { useGoogleMaps: false }
-      );
-      const location = `${region} ${city}`; // 경기도 고양시
-      setLocation(location);
-    })();
+    let {
+      coords: { latitude, longitude },
+    } = await Location.getCurrentPositionAsync({});
+    const [{ region, city }] = await Location.reverseGeocodeAsync(
+      { latitude, longitude },
+      { useGoogleMaps: false }
+    );
+    const location = `${region} ${city}`; // 경기도 고양시
+    setLocation(location);
+
+    // 날씨 정보 가져오기
+    const weather = getWeather(latitude, longitude);
+    console.log(latitude, longitude);
+
+    console.log(weather);
+  };
+
+  useEffect(() => {
+    getLocation();
   }, []);
 
   let locationText = "Waiting..";
