@@ -1,13 +1,45 @@
 import "react-native-reanimated";
 import { View, Text, StyleSheet, ScrollView, Dimensions } from "react-native";
+import * as Location from "expo-location";
+import { useEffect, useState } from "react";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function RootLayout() {
+  const [location, setLocation] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setErrorMsg("Permission to access location was denied");
+        return;
+      }
+
+      let {
+        coords: { latitude, longitude },
+      } = await Location.getCurrentPositionAsync({});
+      const [{ region, city }] = await Location.reverseGeocodeAsync(
+        { latitude, longitude },
+        { useGoogleMaps: false }
+      );
+      const location = `${region} ${city}`; // 경기도 고양시
+      setLocation(location);
+    })();
+  }, []);
+
+  let locationText = "Waiting..";
+  if (errorMsg) {
+    locationText = errorMsg;
+  } else if (location) {
+    locationText = JSON.stringify(location);
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.city}>
-        <Text style={styles.cityName}>Seoul</Text>
+        <Text style={styles.cityName}>{locationText}</Text>
       </View>
       <ScrollView
         horizontal
@@ -43,7 +75,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cityName: {
-    fontSize: 68,
+    fontSize: 38,
     fontWeight: "500",
   },
   weather: {
