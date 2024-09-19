@@ -12,12 +12,21 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function RootLayout() {
   const [location, setLocation] = useState<string | null>(null);
-  const [todayTemp, setTodayTemp] = useState<number | null>(null);
-  const [yesterdayTemp, setYesterdayTemp] = useState<number | null>(null);
+  const [temperatures, setTemperatures] = useState<{
+    today: number | null;
+    yesterday: number | null;
+  }>({
+    today: null,
+    yesterday: null,
+  });
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const { today: todayTemp, yesterday: yesterdayTemp } = temperatures;
+
   const getLocation = async () => {
+    // 사용자에게 위치 정보 접근 권한 요청
     let { status } = await Location.requestForegroundPermissionsAsync();
+
     if (status !== "granted") {
       setErrorMsg("위치 정보에 접근할 수 있는 권한이 없습니다!😭");
       return;
@@ -31,7 +40,7 @@ export default function RootLayout() {
       { latitude, longitude },
       { useGoogleMaps: false }
     );
-    setLocation(`${region} ${city}`); // 예: 경기도 고양시
+    setLocation(`${region} ${city}`);
   };
 
   const getTemperatures = async () => {
@@ -43,20 +52,33 @@ export default function RootLayout() {
     if (coordinates) {
       const { x, y } = coordinates;
       const yesterdayTempData = await getYesterdayWeather(x, y);
-      setYesterdayTemp(yesterdayTempData);
-
       const todayTempData = await getTodayWeather(latitude, longitude);
-      setTodayTemp(todayTempData);
+
+      setTemperatures({
+        yesterday: yesterdayTempData,
+        today: todayTempData,
+      });
     } else {
       console.error("좌표를 가져올 수 없습니다.");
     }
   };
 
   useEffect(() => {
-    getLocation(); // 위치 정보를 가져오는 로직
-    getTemperatures(); // 온도 정보를 가져오는 로직
+    getLocation();
+    getTemperatures();
   }, []);
 
+  // 온도 차이 계산
+  let temperatureMessage = "";
+  if (todayTemp && yesterdayTemp) {
+    const tempDifference = (todayTemp - yesterdayTemp).toFixed(1);
+    temperatureMessage =
+      todayTemp > yesterdayTemp
+        ? `어제보다 ${tempDifference}℃ 더 높아요🥵`
+        : `어제보다 ${tempDifference}℃ 더 낮아요🥶`;
+  }
+
+  // 위치 및 오류 메시지 처리
   let locationText = errorMsg || location || "로딩중...";
 
   return (
@@ -74,19 +96,9 @@ export default function RootLayout() {
           <Text style={styles.temp}>
             {todayTemp !== null ? `${todayTemp}℃` : ""}
           </Text>
-          {todayTemp !== null && yesterdayTemp !== null && (
-            <Text style={styles.description}>
-              {todayTemp > yesterdayTemp
-                ? `어제보다 ${(todayTemp - yesterdayTemp).toFixed(
-                    1
-                  )}℃ 더 높아요🥵`
-                : `어제보다 ${(yesterdayTemp - todayTemp).toFixed(
-                    1
-                  )}℃ 더 낮아요🥶`}
-            </Text>
-          )}
+          <Text style={styles.description}>{temperatureMessage}</Text>
         </View>
-
+        {/* mock data start */}
         <View style={styles.day}>
           <Text style={styles.temp}>27</Text>
           <Text style={styles.description}>Sunny</Text>
@@ -95,6 +107,7 @@ export default function RootLayout() {
           <Text style={styles.temp}>27</Text>
           <Text style={styles.description}>Sunny</Text>
         </View>
+        {/* mock data end */}
       </ScrollView>
     </View>
   );
